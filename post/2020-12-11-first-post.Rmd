@@ -1,0 +1,24 @@
+---
+title: First Post
+author: ''
+date: '2020-12-11'
+slug: first-post
+categories: []
+tags: []
+description: ''
+---
+These are some edits to this page. 
+
+[Link to project 1](/project/project1/)
+
+[Link to google](https://www.google.com)
+
+```{r}
+1+1
+```
+
+```{python}
+1+1
+```
+
+![](/post/2020-12-11-first-post_files/chocolate cake pic.jpg)
