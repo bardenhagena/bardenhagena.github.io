@@ -13,7 +13,7 @@
       <pubDate>Fri, 11 Dec 2020 00:00:00 +0000</pubDate>
       
       <guid>/post/2020/12/11/learning-python/</guid>
-      <description>During the last few weeks of SDS348, we have been learning some of the basics in Python. While my first instinct was to stick to what I know best (R), Python has proven itself to be pretty interesting and versatile, although I will have to put a lot more work into it before I consider myself to know how to use it. There are quite a few differences between R and Python, but two of the most basic differences come across when indexing in either program and when you come across a type of dataframe called a dictionary.</description>
+      <description>During the last few weeks of SDS348, we have been learning some of the basics of Python. While my first instinct was to stick to what I know best (R), Python has proven itself to be pretty interesting and versatile, although I will have to put a lot more work into it before I start feeling more comfortable. There are quite a few differences between R and Python, but two of the most basic differences come across when indexing in either program and when you come across a type of dataframe called a dictionary.</description>
     </item>
     
     <item>
