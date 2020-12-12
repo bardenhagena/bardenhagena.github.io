@@ -7,7 +7,7 @@
     <meta name="author" content="Anna Bardenhagen" />
     
     <link rel="shortcut icon" type="image/x-icon" href="../../img/favicon.ico">
-    <title>Project 2</title>
+    <title>Project2</title>
     <meta name="generator" content="Hugo 0.79.0" />
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
     <link rel="stylesheet" type="text/css" href="../../css/main.css" />
@@ -54,13 +54,13 @@
       <div class="container">
         <div class="blog-post">
           <h3>
-            <strong><a href="../../project/project2/">Project 2</a></strong>
+            <strong><a href="../../project/project2/">Project2</a></strong>
           </h3>
         </div>
  
 <div class="blog-title">
           <h4>
-         December 1, 2020 
+         January 1, 0001 
             &nbsp;&nbsp;
             
           </h4>
@@ -72,8 +72,354 @@
               
 
 
-<div id="test-project-2" class="section level2">
-<h2>Test Project 2</h2>
+<div id="introduction" class="section level2">
+<h2>Introduction</h2>
+<p>The dataset I chose to analyze is from the UCI Machine Learning Repository, and is called the Contraceptive Method Choice Data Set. It is a subset of the 1987 National Indonesia Contraceptive Prevalence Survey. The variables in this survey are the age, education, religion, and work status of the wife, the education of the husband, the number of children ever born, the standard of living, the level of media exposure the couple has, and the method of contraception. The original dataset includes three methods of contraception: no use, short-term use, and long-term use. For the purposes of this project, however, I will be combining short-term use and long-term use to create a binary variable. Age and number of children are numerical variables in this dataset; the other variables are categorical. There are 1473 observations in this dataset.</p>
+<pre class="r"><code>cmc &lt;- read_csv(&quot;cmc.csv&quot;)
+cmc &lt;- cmc %&gt;% mutate(contraceptive=NULL)
+head(cmc)</code></pre>
+<pre><code>## # A tibble: 6 x 10
+## ID wife_age wife_ed husband_ed num_children
+wife_religion wife_work standard media
+## &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt;
+## 1 1 24 2 3 3 1 1 3 0
+## 2 2 45 1 3 10 1 1 4 0
+## 3 3 43 2 3 7 1 1 4 0
+## 4 4 42 3 2 9 1 1 3 0
+## 5 5 36 3 3 8 1 1 2 0
+## 6 6 19 4 4 0 1 1 3 0
+## # … with 1 more variable: bin_contraceptive &lt;dbl&gt;</code></pre>
+</div>
+<div id="manova-testing" class="section level2">
+<h2>MANOVA Testing</h2>
+<p>Before testing this data using MANOVA, I first had to test the assumptions of multivariate normality and homogeneity of covariance matrices. I chose to test the effect of the number of children and the age of the wife on the method of contraception.</p>
+<pre class="r"><code>library(rstatix)
+
+group &lt;- cmc$bin_contraceptive 
+DVs &lt;- cmc %&gt;% select(wife_age,num_children)
+
+#Test multivariate normality for each group (null: assumption met)
+sapply(split(DVs,group), mshapiro_test)</code></pre>
+<pre><code>##           0            1           
+## statistic 0.950716     0.9084806   
+## p.value   1.214671e-13 4.252026e-22</code></pre>
+<pre class="r"><code>#If any p&lt;.05, stop. If not, test homogeneity of covariance matrices
+
+#Box&#39;s M test (null: assumption met)
+box_m(DVs, group)</code></pre>
+<pre><code>## # A tibble: 1 x 4
+## statistic p.value parameter method
+## &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;chr&gt;
+## 1 109. 1.72e-23 3 Box&#39;s M-test for Homogeneity of
+Covariance Matrices</code></pre>
+<pre class="r"><code>#View covariance matrices for each group
+lapply(split(DVs,group), cov)</code></pre>
+<pre><code>## $`0`
+##              wife_age num_children
+## wife_age     83.24469    12.468796
+## num_children 12.46880     7.051477
+## 
+## $`1`
+##               wife_age num_children
+## wife_age     55.155908     9.389073
+## num_children  9.389073     4.321448</code></pre>
+<p>I found that both of the assumptions of multivariate normality and homogeneity of covariance matrices were violated. This will serve as a limitation for my final results, but I will still conduct the MANOVA test.</p>
+<pre class="r"><code>man1&lt;-manova(cbind(wife_age,num_children)~bin_contraceptive, data=cmc)
+summary(man1)</code></pre>
+<pre><code>## Df Pillai approx F num Df den Df Pr(&gt;F)
+## bin_contraceptive 1 0.049362 38.165 2 1470 &lt; 2.2e-16 ***
+## Residuals 1471
+## ---
+## Signif. codes: 0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1
+&#39; &#39; 1</code></pre>
+<p>The MANOVA test is significant! I will follow up with univariate ANOVAs for each variable.</p>
+<pre class="r"><code>summary.aov(man1)</code></pre>
+<pre><code>## Response wife_age :
+## Df Sum Sq Mean Sq F value Pr(&gt;F)
+## bin_contraceptive 1 862 861.99 12.837 0.0003509 ***
+## Residuals 1471 98774 67.15
+## ---
+## Signif. codes: 0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1
+&#39; &#39; 1
+##
+## Response num_children :
+## Df Sum Sq Mean Sq F value Pr(&gt;F)
+## bin_contraceptive 1 117.1 117.063 21.335 4.193e-06 ***
+## Residuals 1471 8071.3 5.487
+## ---
+## Signif. codes: 0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1
+&#39; &#39; 1</code></pre>
+<p>Both are significant, meaning that for both the wife's age and the number of children, the method of contraception differs significantly within the group. Since the method of contraception is a binary variable, I do not need to do post-hoc testing on this data. I have done a total of three tests, meaning I must change the alpha to 0.0167. Even so, all of my test results are still significant.</p>
+</div>
+<div id="randomization-testing" class="section level2">
+<h2>Randomization Testing</h2>
+<p>I next conducted a randomization test on the mean difference between the number of children of women in each of the two contraceptive groups. The null hypothesis is that the mean difference in number of children does not differ significantly from the null distribution generated by the randomization test, and the alternative is that it does differ significantly.</p>
+<pre class="r"><code>cmc%&gt;%group_by(bin_contraceptive)%&gt;%summarize(means=mean(num_children))%&gt;%summarize(`mean_diff`=diff(means))</code></pre>
+<pre><code>## # A tibble: 1 x 1
+##   mean_diff
+##       &lt;dbl&gt;
+## 1     0.570</code></pre>
+<pre class="r"><code>rand_dist&lt;-vector()
+for(i in 1:5000){
+  new&lt;-data.frame(num_children=sample(cmc$num_children),bin_contraceptive=cmc$bin_contraceptive)
+  rand_dist[i]&lt;-mean(new[new$bin_contraceptive==1,]$num_children)-mean(new[new$bin_contraceptive==0,]$num_children)}
+
+{hist(rand_dist,main=&quot;&quot;,ylab=&quot;&quot;, xlab=&quot;Null Distribution&quot;); abline(v = c(-0.5699222, 0.5699222),col=&quot;red&quot;)}</code></pre>
+<p><img src="../../project/project2_files/figure-html/unnamed-chunk-5-1.png" width="768" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>mean(rand_dist&gt;0.5699222 | rand_dist &lt; -0.5699222)</code></pre>
+<pre><code>## [1] 0</code></pre>
+<p>The p-value for this test is 0, meaning that the probability of obtaining a result as extreme as the observed difference of means from within the null distribution created through the randomization test is zero. The above plot of the null distribution illustrates this zero result; one of the boundaries, which signifies the test statistics, is not even visible since it is so far to the right. Therefore, I reject the null hypothesis and conclude that the mean difference in the number of children between the two contraceptive groups differs significantly. This means that women who use birth control have a significantly different number of children than those who do not.</p>
+</div>
+<div id="linear-regression" class="section level2">
+<h2>Linear Regression</h2>
+<p>I next did a linear regression to determine if the age of the wife and the family's media exposure impacted the number of children born. I started by creating a new character-based &quot;media&quot; variable so that it would work properly in ggplot, and I centered the ages of the wives. I then ran the regression.</p>
+<pre class="r"><code>cmc &lt;- cmc %&gt;%mutate(bin_media=ifelse(media==1,&quot;not good&quot;,&quot;good&quot;))
+cmc$wife_age_c &lt;- cmc$wife_age - mean(cmc$wife_age)
+fit&lt;-lm(num_children~media*wife_age_c, data= cmc)
+summary(fit)</code></pre>
+<pre><code>##
+## Call:
+## lm(formula = num_children ~ media * wife_age_c, data =
+cmc)
+##
+## Residuals:
+## Min 1Q Median 3Q Max
+## -6.2813 -1.2113 -0.1393 1.0230 10.4195
+##
+## Coefficients:
+## Estimate Std. Error t value Pr(&gt;|t|)
+## (Intercept) 3.212631 0.053623 59.912 &lt; 2e-16 ***
+## media 0.686480 0.210022 3.269 0.00111 **
+## wife_age_c 0.153147 0.006587 23.251 &lt; 2e-16 ***
+## media:wife_age_c -0.008438 0.023025 -0.366 0.71408
+## ---
+## Signif. codes: 0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1
+&#39; &#39; 1
+##
+## Residual standard error: 1.979 on 1469 degrees of
+freedom
+## Multiple R-squared: 0.2971, Adjusted R-squared: 0.2957
+## F-statistic: 207 on 3 and 1469 DF, p-value: &lt; 2.2e-16</code></pre>
+<p>This revealed that controlling for age, media exposure has a positive effect on the number of children, increasing the number by 0.69 children when it is good. When controlling for media exposure, the age of the wife also has a positive effect, increasing the number of children by 0.15 per year of the wife's age. The interaction between these two variables has a negative effect. I have plotted these results below.</p>
+<pre class="r"><code>ggplot(cmc, aes(wife_age_c,num_children, color=bin_media))+geom_point()+geom_smooth(method=&quot;lm&quot;, se=F) +xlab(&quot;Age of Wife (centered)&quot;) + ylab(&quot;Number of Children&quot;)</code></pre>
+<p><img src="../../project/project2_files/figure-html/unnamed-chunk-7-1.png" width="768" style="display: block; margin: auto;" /> I then checked the assumptions of this regression.</p>
+<pre class="r"><code>lin_samp &lt;- sample_n(cmc, 25)
+ggplot(lin_samp, aes(wife_age_c, num_children)) + geom_point() + geom_smooth(method=&quot;lm&quot;, se=F)</code></pre>
+<p><img src="../../project/project2_files/figure-html/unnamed-chunk-8-1.png" width="768" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>resids&lt;-fit$residuals
+fitvals&lt;-fit$fitted.values
+data.frame(resids,fitvals)%&gt;%ggplot(aes(fitvals,resids))+geom_point()+geom_hline(yintercept=0)</code></pre>
+<p><img src="../../project/project2_files/figure-html/unnamed-chunk-8-2.png" width="768" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>par(mfrow=c(1,2)); hist(resids)</code></pre>
+<p><img src="../../project/project2_files/figure-html/unnamed-chunk-8-3.png" width="768" style="display: block; margin: auto;" /> From these tests, it appears that homoskedasticity is violated, as the points fan out. The residuals are more or less normally distributed, and the data is linear.</p>
+<p>Because the data is not homoskedastic, I recomputed the regression results using robust standard errors.</p>
+<pre class="r"><code>library(sandwich); library(lmtest)
+coeftest(fit, vcov = vcovHC(fit))</code></pre>
+<pre><code>##
+## t test of coefficients:
+##
+## Estimate Std. Error t value Pr(&gt;|t|)
+## (Intercept) 3.2126310 0.0537530 59.7665 &lt; 2.2e-16 ***
+## media 0.6864802 0.2062530 3.3283 0.0008953 ***
+## wife_age_c 0.1531471 0.0074022 20.6893 &lt; 2.2e-16 ***
+## media:wife_age_c -0.0084376 0.0271379 -0.3109 0.7559085
+## ---
+## Signif. codes: 0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1
+&#39; &#39; 1</code></pre>
+<p>This does not change any of the intercepts, but slightly changes the significance of each. In the initial regression, only media exposure and the wife's age were significant; the interaction between these variables was not. This is true of the recomputed regression results, but the specific p-values are different. Overall, the robust standard errors do not change the results. Overall, this model explains 0.2957 (29.57%) of the variation in the number of children a woman has.</p>
+</div>
+<div id="bootstrapped-standard-errors" class="section level2">
+<h2>Bootstrapped Standard Errors</h2>
+<p>I then reran the above regression using bootstrapped standard errors, which I found by resampling observations.</p>
+<pre class="r"><code>samp_distn&lt;-replicate(5000, {
+  boot_dat &lt;- sample_frac(cmc, replace=T) #take bootstrap sample of rows  
+  fit &lt;- lm(num_children~media*wife_age_c, data=boot_dat) #fit model on bootstrap sample  
+  coef(fit) #save coefs
+  }) 
+samp_distn %&gt;% t %&gt;% as.data.frame %&gt;% summarize_all(sd)</code></pre>
+<pre><code>##   (Intercept)     media  wife_age_c media:wife_age_c
+## 1  0.05303641 0.2048016 0.007412836       0.02665803</code></pre>
+<p>These standard errors differ only very slightly from the robust standard errors calculated above, but differ a bit more from the original standard errors. The standard error for media is slightly lower, while the standard errors for the wife's ages and the interaction term are slightly higher.</p>
+</div>
+<div id="logistic-regression" class="section level2">
+<h2>Logistic Regression</h2>
+<p>I chose to run a logistic regression to try to predict whether or not a woman uses contraception from the number of children she has and the media exposure she has.</p>
+<pre class="r"><code>fit2&lt;-glm(bin_contraceptive~num_children+bin_media, family=&quot;binomial&quot;, data=cmc)
+coeftest(fit2)</code></pre>
+<pre><code>##
+## z test of coefficients:
+##
+## Estimate Std. Error z value Pr(&gt;|z|)
+## (Intercept) -0.028571 0.092100 -0.3102 0.7564
+## num_children 0.131047 0.024415 5.3675 7.983e-08 ***
+## bin_medianot good -1.314323 0.219223 -5.9954 2.030e-09
+***
+## ---
+## Signif. codes: 0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1
+&#39; &#39; 1</code></pre>
+<p>Controlling for media exposure, for every additional child born, odds of using contraception change by a factor of 1.14. Controlling for number of children, odds of using contraception for women who do not have good media exposure change by a factor of 0.26.</p>
+<pre class="r"><code>cmc$prob &lt;- predict(fit2,type=&quot;response&quot;)
+cmc$predicted &lt;- ifelse(cmc$prob&gt;.5,&quot;1&quot;,&quot;0&quot;)
+table(truth=cmc$bin_contraceptive, prediction=cmc$predicted)%&gt;%addmargins</code></pre>
+<pre><code>##      prediction
+## truth    0    1  Sum
+##   0    162  467  629
+##   1     36  808  844
+##   Sum  198 1275 1473</code></pre>
+<pre class="r"><code>class_diag &lt;- function(probs,truth){
+  #CONFUSION MATRIX: CALCULATE ACCURACY, TPR, TNR, PPV
+  tab&lt;-table(factor(probs&gt;.5,levels=c(&quot;FALSE&quot;,&quot;TRUE&quot;)),truth)
+  acc=sum(diag(tab))/sum(tab)
+  sens=tab[2,2]/colSums(tab)[2]
+  spec=tab[1,1]/colSums(tab)[1]
+  ppv=tab[2,2]/rowSums(tab)[2]
+  f1=2*(sens*ppv)/(sens+ppv)
+
+  if(is.numeric(truth)==FALSE &amp; is.logical(truth)==FALSE) truth&lt;-as.numeric(truth)-1
+  
+  #CALCULATE EXACT AUC
+  ord&lt;-order(probs, decreasing=TRUE)
+  probs &lt;- probs[ord]; truth &lt;- truth[ord]
+  
+  TPR=cumsum(truth)/max(1,sum(truth)) 
+  FPR=cumsum(!truth)/max(1,sum(!truth))
+  
+  dup&lt;-c(probs[-1]&gt;=probs[-length(probs)], FALSE)
+  TPR&lt;-c(0,TPR[!dup],1); FPR&lt;-c(0,FPR[!dup],1)
+  n &lt;- length(TPR)
+  auc&lt;- sum( ((TPR[-1]+TPR[-n])/2) * (FPR[-1]-FPR[-n]) )
+
+  data.frame(acc,sens,spec,ppv,f1,auc)
+}
+class_diag(cmc$prob, cmc$bin_contraceptive)</code></pre>
+<pre><code>## acc sens spec ppv f1 auc
+## 1 0.65852 0.957346 0.2575517 0.6337255 0.7626239
+0.6508262</code></pre>
+<pre class="r"><code>cmc &lt;- cmc %&gt;%mutate(ggbin_contraceptive=ifelse(bin_contraceptive==1,&quot;yes&quot;,&quot;no&quot;))
+cmc$logit&lt;-predict(fit2)
+ggplot(cmc, aes(logit, fill=ggbin_contraceptive))+geom_density(alpha=.3)</code></pre>
+<p><img src="../../project/project2_files/figure-html/unnamed-chunk-13-1.png" width="768" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>library(plotROC)  
+ROCplot&lt;-ggplot(cmc)+geom_roc(aes(d=bin_contraceptive,m=prob), n.cuts=0) 
+ROCplot</code></pre>
+<p><img src="../../project/project2_files/figure-html/unnamed-chunk-13-2.png" width="768" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>calc_auc(ROCplot)</code></pre>
+<pre><code>##   PANEL group       AUC
+## 1     1    -1 0.6508262</code></pre>
+<p>Both accuracy and precision are relatively low, which is not a good sign for this model. Sensitivity is very high and specificity is very low; this indicates that while most contraception users were correctly classified, few people who do not use contraception were correctly classified. The AUC is 0.65, which can be interpreted as poor performance. The plot of the log-odds shows that the two groups are largely overlapping, which is not good, and the ROC curve is strongly curved, leading to the poor AUC value.</p>
+</div>
+<div id="logistic-regression-on-everything-now" class="section level2">
+<h2>Logistic Regression (on everything now!)</h2>
+<p>Finally, I ran a logistic regression using every variable to predict whether or not a woman uses contraception.</p>
+<pre class="r"><code>fit3&lt;-glm(bin_contraceptive~num_children+bin_media+wife_age_c+wife_ed+husband_ed+wife_religion+wife_work+standard, family=&quot;binomial&quot;, data=cmc)
+coeftest(fit3)</code></pre>
+<pre><code>##
+## z test of coefficients:
+##
+## Estimate Std. Error z value Pr(&gt;|z|)
+## (Intercept) -2.8713722 0.4057968 -7.0759 1.485e-12 ***
+## num_children 0.3400411 0.0344102 9.8820 &lt; 2.2e-16 ***
+## bin_medianot good -0.4783739 0.2479760 -1.9291 0.0537168
+.
+## wife_age_c -0.0823135 0.0093823 -8.7732 &lt; 2.2e-16 ***
+## wife_ed 0.5251153 0.0769951 6.8201 9.097e-12 ***
+## husband_ed 0.0012604 0.0918555 0.0137 0.9890518
+## wife_religion -0.4005779 0.1709915 -2.3427 0.0191460 *
+## wife_work 0.1231948 0.1330073 0.9262 0.3543285
+## standard 0.2555349 0.0665152 3.8418 0.0001222 ***
+## ---
+## Signif. codes: 0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1
+&#39; &#39; 1</code></pre>
+<pre class="r"><code>cmc$prob2 &lt;- predict(fit3,type=&quot;response&quot;)
+class_diag(cmc$prob2, cmc$bin_contraceptive)</code></pre>
+<pre><code>## acc sens spec ppv f1 auc
+## 1 0.6775289 0.813981 0.4944356 0.6835821 0.7431044
+0.7142977</code></pre>
+<p>In this case, the regression appears to have performed somewhat better than when I only predicted using two variables. The AUC is now 0.71, which is classified as fair. The accuracy are precision are still low, although slightly higher than before. The sensitivity has decreased and the specificity has increased, meaning that although the model still labels people who use contraception better than those who do not, the difference has decreased.</p>
+<p>Next, I used cross-validation to test how the model fits to unknown data.</p>
+<pre class="r"><code>set.seed(456)
+k=10 
+
+data&lt;-cmc[sample(nrow(cmc)),] #randomly order rows
+folds&lt;-cut(seq(1:nrow(cmc)),breaks=k,labels=F) #create folds
+
+diags&lt;-NULL
+for(i in 1:k){
+  ## Create training and test sets
+  train&lt;-data[folds!=i,] 
+  test&lt;-data[folds==i,]
+  
+  truth&lt;-test$bin_contraceptive ## Truth labels for fold i
+  
+  ## Train model on training set (all but fold i)
+  fit&lt;-glm(bin_contraceptive~num_children+bin_media+wife_age_c+wife_ed+husband_ed+wife_religion+wife_work+standard,
+           family=&quot;binomial&quot;,data=train)
+  
+  ## Test model on test set (fold i) 
+  probs&lt;-predict(fit,newdata = test,type=&quot;response&quot;)
+  
+  ## Get diagnostics for fold i
+  diags&lt;-rbind(diags,class_diag(probs,truth))
+}
+summarize_all(diags,mean)</code></pre>
+<pre><code>## acc sens spec ppv f1 auc
+## 1 0.676857 0.8155582 0.4935735 0.6832054 0.7424879
+0.7058379</code></pre>
+<p>The AUC rounds 0.71, which is the same as it was with the in-sample metrics. Similarly, all other metrics differ slightly, but only past the thousandths place, and would round to approximately the same value. This indicates that it is likely not overfitting too much.</p>
+<p>To test this theory, I ran LASSO, which will find the most predictive variables.</p>
+<pre class="r"><code>library(glmnet)
+y&lt;-as.matrix(cmc$bin_contraceptive) 
+x&lt;-model.matrix(bin_contraceptive~bin_media+num_children+wife_age_c+wife_ed+husband_ed+wife_religion+wife_work+standard, data=cmc)[,-1] 
+x&lt;-scale(x) 
+
+cv &lt;- cv.glmnet(x,y, family=&quot;binomial&quot;)
+
+{plot(cv$glmnet.fit, &quot;lambda&quot;, label=TRUE); abline(v = log(cv$lambda.1se)); abline(v = log(cv$lambda.min),lty=2)}</code></pre>
+<p><img src="../../project/project2_files/figure-html/unnamed-chunk-16-1.png" width="768" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>cv&lt;-cv.glmnet(x,y,family=&quot;binomial&quot;)
+lasso&lt;-glmnet(x,y,family=&quot;binomial&quot;,lambda=cv$lambda.1se)
+coef(lasso)</code></pre>
+<pre><code>## 9 x 1 sparse Matrix of class &quot;dgCMatrix&quot;
+##                            s0
+## (Intercept)        0.30859530
+## bin_medianot good -0.07342341
+## num_children       0.54316316
+## wife_age_c        -0.43406568
+## wife_ed            0.45106519
+## husband_ed         .         
+## wife_religion     -0.04512982
+## wife_work          .         
+## standard           0.16941627</code></pre>
+<p>Out of all eight of my predictor variables, only the husband's education level and the wife's work status were not predictive. I retained all six of the other variables.</p>
+<p>Finally, I performed another cross-validation to see how the model works when these two variables are not used.</p>
+<pre class="r"><code>set.seed(456)
+k=10 
+
+data&lt;-cmc[sample(nrow(cmc)),] #randomly order rows
+folds&lt;-cut(seq(1:nrow(cmc)),breaks=k,labels=F) #create folds
+
+diags&lt;-NULL
+for(i in 1:k){
+  ## Create training and test sets
+  train&lt;-data[folds!=i,] 
+  test&lt;-data[folds==i,]
+  
+  truth&lt;-test$bin_contraceptive ## Truth labels for fold i
+  
+  ## Train model on training set (all but fold i)
+  fit&lt;-glm(bin_contraceptive~num_children+bin_media+wife_age_c+wife_ed+wife_religion+standard,family=&quot;binomial&quot;,data=train)
+  
+  ## Test model on test set (fold i) 
+  probs&lt;-predict(fit,newdata = test,type=&quot;response&quot;)
+  
+  ## Get diagnostics for fold i
+  diags&lt;-rbind(diags,class_diag(probs,truth))
+}
+summarize_all(diags,mean)</code></pre>
+<pre><code>## acc sens spec ppv f1 auc
+## 1 0.6754964 0.8108508 0.4965439 0.6833205 0.7405513
+0.7080923</code></pre>
+<p>The AUC is now 0.71, which is the same as it was previously. Similarly, all other values are approximately the same. This indicates that the model was not overfitting, even with the two non-predictive variables.</p>
 </div>
 
             
